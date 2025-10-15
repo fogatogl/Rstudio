@@ -188,7 +188,7 @@ col <- colors[flights$origin]
 Affichez arr_delay en fonction de dep_delay en mettant une couleur différente en fonction de l’aéroport de départ. Ajoutez une légende. Si vous enregistrez le graphique, en quel format est-ce préférable?
 
 ```{r}
-plot(ACOMPLETER, ACOMPLETER, pch =16, col=col, xlab="Retard au départ (min)", ylab="Retard à l’arrivée (min)")
+plot(flights$arr_delay, flights$dep_delay, pch =16, col=col, xlab="Retard au départ (min)", ylab="Retard à l’arrivée (min)")
 legend ("topleft", names(colors), col=colors, pch =16)
 ```
 
@@ -199,9 +199,9 @@ Commentaire : Compte tenu du nombre de points, le format pdf (vectoriel) conduit
 Calculez la corrélation linéaire entre dep_delay et arr_delay en fonction de l’aéroport d’origine. Puis calculez la corrélation entre dep_delay et arr_delay− dep_delay (qui est le retard ou l’avance additionnelle après départ) en fonction de l’origine et pour les données complètes. Que remarquez-vous?
 
 ```{r}
-flights[,cor(ACOMPLETER, ACOMPLETER), by=ACOMPLETER]
-flights[,cor(ACOMPLETER, ACOMPLETER), by=ACOMPLETER]
-flights[,cor(ACOMPLETER, ACOMPLETER)]
+flights[,cor(dep_delay, arr_delay), by=origin]
+flights[,cor(dep_delay, arr_delay-dep_delay), by=origin]
+flights[,cor(dep_delay, arr_delay-dep_delay)]
 ```
 
 Commentaire : ACOMPLETER
@@ -211,7 +211,7 @@ Commentaire : ACOMPLETER
 Affichez le graphique précédent, mais en comparant cette fois-ci à arr_delay - dep_delay à dep_delay.
 
 ```{r}
-plot(ACOMPLETER, ACOMPLETER, pch=16, col=col, xlab="Retard au départ", ylab="Retard additionnel")
+plot(flights$dep_delay,flights$arr_delay-flights$dep_delay, pch=16, col=col, xlab="Retard au départ", ylab="Retard additionnel")
 legend("topright", names(colors), col=colors, pch =16)
 ```
 
@@ -241,7 +241,7 @@ head(flights)
 Pour arr_delay - dep_delay, calculez la moyenne, l’écart-type, la corrélation linéaire en fonction de dep_delay, et le nombre de données pour chaque dep_delay_group_name
 
 ```{r}
-flights[,.(Moyenne = ACOMPLETER, EcartType=ACOMPLETER, Cor=ACOMPLETER, N=ACOMPLETER), by=ACOMPLETER]
+flights[,.(Moyenne = mean(arr_delay-dep_delay), EcartType=sd(arr_delay-dep_delay, dep_delay), Cor=cor(arr_delay-dep_delay), N=lenght()), by=dep_delay_group_name]
 ```
 
 Commentaire : ACOMPLETER
