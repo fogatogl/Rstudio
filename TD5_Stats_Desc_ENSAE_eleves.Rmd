@@ -152,9 +152,9 @@ Pour chaque aéroport de départ donnez la moyenne et les deux bornes de l’int
 ```{r}
 #1. récupérer la moyenne, l'écart type et le nombre d'observations pour chaque origin
 
-flights_ic <- flights[,.(Moyenne=ACOMPLETER, 
-                         EcartType=ACOMPLETER, 
-                         N=ACOMPLETER), by=ACOMPLETER]
+flights_ic <- flights[,.(Moyenne=mean(dep_delay), 
+                         EcartType=sd(dep_delay), 
+                         N=length(dep_delay)), by=origin]
 
 head(flights_ic)
 
