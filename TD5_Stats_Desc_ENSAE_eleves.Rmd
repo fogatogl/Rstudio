@@ -1,0 +1,261 @@
+---
+title: "TD1_Stats_Desc_ENSA"
+output: pdf_document
+date: "2025-09-16"
+---
+
+# Statistique descriptive avec R - Correction TP 4
+
+Nous allons travailler sur les données américaines `flights14` du Bureau des statistiques des transports (Bureau of Transportation Statistics) pour les vols du départ de New York de janvier à octobre 2014.
+
+## Question 1.
+
+Importez avec le paquet data.table et explorez vos données.
+
+```{r}
+library(data.table)
+flights <- fread("https://raw.githubusercontent.com/Rdatatable/data.table/master/vignettes/flights14.csv", header=TRUE, sep=",", encoding ="UTF-8")
+```
+
+Commentaire : on charge directement les données depuis le dépôt github.
+
+```{r}
+str(flights)
+head(flights)
+```
+
+Description des différentes variables :
+
+-   year, month, day : date du départ
+
+-   dep_delay, arr_delay : retard au décollage et à l’atterrissage en minutes
+
+-   carrier : 2 lettres d'abréviation de la compagnie aérienne
+
+-   origin, des : aéroport de départ et d'arrivée
+
+-   air\_ time : temps passé en vol en minutes
+
+-   distance : distance entre les deux aéroports en miles
+
+-   hour : Heure de départ
+
+Commentaire : ACOMPLETER
+
+## Question 2.
+
+Il ne faut jamais parcourir les lignes une à une dans un data.table, et de même dans un data.frame. La fonction system.time permet de mesurer le temps de calcul effectif d’un bloc de code. Exécutez les deux codes suivants. Testez également avec l’objet en data.frame (ne pas oublier de vous remettre en data.table pour la suite). Comparez à une solution efficace que vous proposerez.
+
+```{r}
+# Code 1 avec extraction de ligne puis sélection
+system.time ({
+  s = 0
+  for(i in 1: nrow(flights)){
+    if(flights[i,]$origin == "JFK"){
+      s = s + flights[i,]$dep_delay      
+    }
+  }
+})
+
+# Code 2 avec extraction de ligne et sélection
+system.time ({
+  s = 0
+  for(i in 1:nrow(flights)){
+    if(flights[i, "origin"] == "JFK"){
+      s = s + flights[i, "dep_delay"]
+    }
+  }
+})
+```
+
+```{r}
+#Testons ces codes mais cette fois ci avec un dataframe. 
+setDF(flights)
+# Code 1 avec extraction de ligne puis sélection
+system.time ({
+  s = 0
+  for(i in 1: nrow(flights)){
+    if(flights[i,]$origin == "JFK"){
+      s = s + flights[i,]$dep_delay      
+    }
+  }
+})
+
+# Code 2 avec extraction de ligne et sélection
+system.time ({
+s = 0
+for(i in 1:nrow(flights))
+if(flights[i, "origin"] == "JFK")
+s = s + flights[i, "dep_delay"]
+})
+
+setDT(flights)
+```
+
+Sur une machine personnelle particulière, le premier s’exécute en environ 50 secondes et le second en environ 100 secondes. Cela s’explique car à chaque ligne, il construit un data.table si on regarde en détail, ce qui est lourd étant donné l’architecture en liste de vecteurs de l’objet. Cette lenteur a aussi lieu pour le cas où on extrait qu’un élément directement (Code 2). En data.frame, en faisant setDF(flights) avant d’exécuter à nouveau le code, on obtient respectivement 35 secondes et 5 secondes. Le dernier est beaucoup plus rapide car en sélectionnant un seul élément, il ne construit pas une data.frame. L’objet data.table est en général plus rapide que data.frame, mais il n’est pas adapté à l’extraction sur une seule ligne (comme data.frame).
+
+Les codes suivants sont deux exemples pour résoudre le problème de manière efficace, le premier est un code classique data.frame compatible avec les deux formats, le second est spécifique aux data.table. Leur temps d’exécution est quasi instantané (environ 2 millisecondes), le facteur de gain est de l’ordre de grandeur de 10 000 à 100 000.
+
+**CONCLUSION : ne jamais parcourir les lignes.**
+
+```{r}
+#Extraction des colonnes dans lequelles on filtre
+sum(flights$dep_delay[flights$origin == "JFK"])
+
+#Rappel : on peut directement donner le nom des colonnes : ce ne sont pas des variables évaluées par défaut. Dans l’indice des colonnes on peut préciser à la source qu’on en veut la somme.
+flights[origin == "JFK", sum(dep_delay)]
+```
+
+## Question 3.
+
+Récupérez la moyenne et l’écart-type du retard au départ par aéroport en utilisant la fonction `tapply`.
+
+```{r}
+#Séparément
+tapply(flights$dep_delay, flights$origin, mean)
+tapply(flights$dep_delay, flights$origin, sd)
+
+#De manière jointe
+mean_sd <- function(x){
+    return(c(Moyenne = mean(x), EcartType = sd(x)))
+}
+
+tapply(flights$dep_delay, flights$origin, mean_sd)
+```
+
+Commentaire : ACOMPLETER
+
+## Question 4.
+
+Faites la question précédente en utilisant la syntaxe de data.table. On utilisera la syntaxe mon.data.table[, f(colonneB), by=colonneA] où on agrège par f la colonneB selon les modalités de la colonneA. Pour obtenir ensemble la moyenne et l’écart-type (mais aussi pour nommer une colonne au renvoi), on utilisera la syntaxe plus générale mon.data.table[, .(nom1 = f(colonneB), nom2 = g(colonneC)), by=colonneA].
+
+```{r}
+flights[,mean(ACOMPLETER), by=ACOMPLETER]
+flights[,sd(ACOMPLETER), by=ACOMPLETER]
+flights[,.(Moyenne=ACOMPLETER, EcartType = ACOMPLETER), by=ACOMPLETER]
+```
+
+## Question 5.
+
+On rappelle que si les (Xi)1≤i≤n sont des variables aléatoires i.i.d. et de carré intégrable, nous avons le théorème central limite sur Xn la moyenne empirique avec σn l’écart-type empirique :
+
+$\sqrt{n}*\frac{\overline{X}_n}{\hat{\sigma}_n} \;\xrightarrow[n \to +\infty]{\text{loi}}\;\mathcal{N}(0,1)$
+
+ce qui permet de construire un intervalle de confiance asymptotique :
+
+$\mathbb{P}\!\left( \mathbb{E}(X) \in [\overline{X}_n \pm q_{1 - \frac{\alpha}{2}} \frac{\hat{\sigma}_n}{\sqrt{n}}] \right)\xrightarrow[n \to +\infty]{} 1 - \alpha$
+
+où $q_{1-\frac{\alpha}{2}}$ est le quantile d’ordre 1-α/2 d’une loi normale centrée réduite.
+
+Pour chaque aéroport de départ donnez la moyenne et les deux bornes de l’intervalle de confiance au niveau de 95% en exploitant la syntaxe de `data.table` et commentez.
+
+```{r}
+#1. récupérer la moyenne, l'écart type et le nombre d'observations pour chaque origin
+
+flights_ic <- flights[,.(Moyenne=ACOMPLETER, 
+                         EcartType=ACOMPLETER, 
+                         N=ACOMPLETER), by=ACOMPLETER]
+
+head(flights_ic)
+
+flights_ic[,.(origin, Moyenne, 
+              IC_inf=Moyenne-qnorm(0.975)*EcartType/sqrt(N), 
+              IC_sup=Moyenne+qnorm(0.975)*EcartType/sqrt(N))]
+
+```
+
+Commentaire : ACOMPLETER
+
+## Question 6.
+
+Construisez un vecteur de couleurs où à chaque aéroport de départ on associe une couleur.
+
+```{r}
+#Solution 1
+col <- rep("#2980b9", nrow(flights)) #EWR
+col[flights$origin == "JFK"] <- "#27ae60"
+col[ flights$origin == "LGA"] <- "#c0392b"
+
+#Solution 2
+colors <- c("EWR"="#2980b9","JFK"="#27ae60","LGA"="#c0392b")
+#colors
+col <- colors[flights$origin]
+#La suite est faite avec la solution 2, on aura la variable colors.
+```
+
+## Question 7.
+
+Affichez arr_delay en fonction de dep_delay en mettant une couleur différente en fonction de l’aéroport de départ. Ajoutez une légende. Si vous enregistrez le graphique, en quel format est-ce préférable?
+
+```{r}
+plot(ACOMPLETER, ACOMPLETER, pch =16, col=col, xlab="Retard au départ (min)", ylab="Retard à l’arrivée (min)")
+legend ("topleft", names(colors), col=colors, pch =16)
+```
+
+Commentaire : Compte tenu du nombre de points, le format pdf (vectoriel) conduit à un graphique lourd et long à afficher dans un document, il est préférable de l’enregistrer en png avec une bonne résolution. Sinon il faut mettre moins de points , comme un sous-échantillon, ou visualiser autrement.
+
+## Question 8.
+
+Calculez la corrélation linéaire entre dep_delay et arr_delay en fonction de l’aéroport d’origine. Puis calculez la corrélation entre dep_delay et arr_delay− dep_delay (qui est le retard ou l’avance additionnelle après départ) en fonction de l’origine et pour les données complètes. Que remarquez-vous?
+
+```{r}
+flights[,cor(ACOMPLETER, ACOMPLETER), by=ACOMPLETER]
+flights[,cor(ACOMPLETER, ACOMPLETER), by=ACOMPLETER]
+flights[,cor(ACOMPLETER, ACOMPLETER)]
+```
+
+Commentaire : ACOMPLETER
+
+## Question 9.
+
+Affichez le graphique précédent, mais en comparant cette fois-ci à arr_delay - dep_delay à dep_delay.
+
+```{r}
+plot(ACOMPLETER, ACOMPLETER, pch=16, col=col, xlab="Retard au départ", ylab="Retard additionnel")
+legend("topright", names(colors), col=colors, pch =16)
+```
+
+## Question 10.
+
+Ajoutez une colonne dep_delay_group qui vaut
+
+-   "\<=60" si le retard au départ est inférieur à 60 minutes,
+
+-   "\>60&\<=180" s’il est entre 60 et 180
+
+-   "\>180" s’il est supérieur à 180.
+
+```{r}
+dep_delay_group_name <- c("<=60",">60&<=180",">180")
+dep_delay_group <- dep_delay_group_name[(flights$dep_delay>180) + (flights$dep_delay>60) +1]
+flights$dep_delay_group <- dep_delay_group
+
+#autre option : 
+#flights <- flights[,dep_delay_group:=dep_delay_group]
+
+head(flights)
+```
+
+## Question 11.
+
+Pour arr_delay - dep_delay, calculez la moyenne, l’écart-type, la corrélation linéaire en fonction de dep_delay, et le nombre de données pour chaque dep_delay_group_name
+
+```{r}
+flights[,.(Moyenne = ACOMPLETER, EcartType=ACOMPLETER, Cor=ACOMPLETER, N=ACOMPLETER), by=ACOMPLETER]
+```
+
+Commentaire : ACOMPLETER
+
+## Question 12.
+
+Affichez arr_delay-dep_delay en fonction de dep_delay avec une couleur différente par dep_delay_group et commentez.
+
+```{r}
+colors <- c("#2980b9","#27ae60","#c0392b")
+names(colors) <- dep_delay_group_name
+col <- colors[flights$dep_delay_group]
+plot(flights$dep_delay, flights$arr_delay-flights$dep_delay, pch=16, col=col, xlab=" Retard au départ", ylab=" Retard à l’arrivée")
+legend("topright", names(colors), col=colors, pch=16)
+```
+
+Commentaire : ACOMPLETER
