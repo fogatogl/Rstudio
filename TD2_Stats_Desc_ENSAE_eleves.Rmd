@@ -1,0 +1,181 @@
+---
+title: "TD1_Stats_Desc_ENSA"
+output: pdf_document
+date: "2025-09-16"
+---
+
+# Statistique descriptive avec R - Correction TP 2
+
+Téléchargez les données au format Excel disponibles à l’adresse suivante : <https://www.insee.fr/fr/statistiques/4268033.>
+
+Dans l’onglet Figure 2, copiez le tableau (à partir de la cellule A4) dans un fichier texte et enregistrez-le sous "inflation.csv".
+
+## Question 1.
+
+Identifiez le séparateur de données et le séparateur décimal. Comment spécifier ce dernier dans R?
+
+```{r}
+file_path = 'A COMPLETER'
+readLines(file_path, n = 5)
+```
+
+Le séparateur de données est A COMPLETER,
+
+dans R ce caractère est encodé avec "A COMPLETER".
+
+Le séparateur de décimal est A COMPLETER "A COMPLETER".
+
+## Question 2.
+
+Importer les données avec la fonction `read.csv`
+
+```{r}
+inflation <- read.csv(file_path, sep = "A COMPLETER", dec='A COMPLETER')
+head(inflation)
+```
+
+## Question 3.
+
+Vous pourriez rencontrer des problèmes avec les accents et autres caractères spéciaux, dus à un encodage de fichier différent de celui attendu par la fonction d’importation. L’encodage est généralement"UTF−8". Précisez-le.
+
+```{r}
+inflation <- read.csv(file_path, sep = "A COMPLETER", dec='A COMPLETER', fileEncoding = "UTF-8")
+head(inflation)
+```
+
+## Question 4.
+
+Ajoutez un argument `colClasses` pour préciser le type des colonnes dès l’importation. Vous pouvez tester les erreurs générées si vous spécifiez mal le séparateur décimal.
+
+```{r}
+inflation <- read.csv(file_path, sep = "A COMPLETER", dec='A COMPLETER', fileEncoding = "UTF-8", colClasses = c("character", rep("numeric",5)))
+head(inflation)
+```
+
+Remarque : Que se passe-t-il quand on se trompe dans les séparateurs ?
+
+```{r}
+#exemple erreur dans le séparateur 
+inflation <- read.csv(file_path, sep = "\t", dec=',', fileEncoding = "UTF-8")
+head(inflation)
+
+#exemple erreur dans le séparateur décimal
+inflation <- read.csv(file_path, sep = ";", dec='.', fileEncoding = "UTF-8")
+head(inflation)
+
+inflation <- read.csv(file_path, sep = ";", dec='.', fileEncoding = "UTF-8", colClasses = c("character", rep("numeric",5)))
+head(inflation)
+```
+
+## Question 5.
+
+Importez à nouveau les données mais avec la fonction `fread` du paquet `data.table`, en précisant l’encodage.
+
+```{r}
+#install.packages('data.table')
+
+library(data.table)
+
+inflation <- fread(file_path, sep="A COMPLETER", dec="A COMPLETER", encoding ="UTF-8", colClasses = c("character", rep("numeric", 5)))
+head(inflation)
+```
+
+Remarque : inflation est maintenant de type data.table au lieu de data.frame
+
+La data.table est une extension de data.frame optimisée pour la vitesse et la mémoire. Elles est surtout utile pour la gestion de gros fichiers.
+
+## Question 6.
+
+Passez vos données en data.frame et revenez en data.table sans copie.
+
+```{r}
+class(inflation)
+setDF(inflation)
+class(inflation)
+setDT(inflation)
+class(inflation)
+```
+
+## Question 7.
+
+Transformez la première colonne au format `Date`, en fixant les dates au 1er janvier.
+
+```{r}
+#paste0(inflation$Mois,"−01")
+inflation$Mois <- as.Date(paste0(inflation$Mois,"-01"), format ="%Y-%m-%d")
+head(inflation)
+```
+
+## Question 8.
+
+Vos données sont de la plus récente à la plus ancienne. Triez-les de la plus ancienne à la plus récente à l’aide de la fonction `order`.
+
+```{r}
+# En data.frame , il faut utiliser le code suivant (compatible et valable avec data.table):
+inflation <- inflation[order(inflation$Mois),]
+head(inflation)
+```
+
+## Question 9.
+
+Avec `matplot`, en utilisant comme premier argument le vecteur des dates en abscisse, et en second argument la data.table sans la colonne des dates, affichez tous les indices d’inflation.
+
+```{r}
+matplot(inflation$Mois, inflation[,-1], xlab="Mois", 
+        ylab="Indice des prix à la consommation", type ="l", lty =1, lwd =2, 
+        col=c("#c0392b","#bdc3c7","#f39c12","#2980b9","#2c3e50"))
+```
+
+## Question 10.
+
+Ajoutez la légende en haut à gauche.
+
+```{r}
+matplot(inflation$Mois, inflation[,-1], xlab="Mois", 
+        ylab="Indice des prix à la consommation", type ="l", lty =1, lwd =2, 
+        col=c("#c0392b","#bdc3c7","#f39c12","#2980b9","#2c3e50"))
+
+legend ("topleft", legend=colnames(inflation)[-1], lty=1, lwd=2, 
+        col=c("#c0392b","#bdc3c7","#f39c12","#2980b9","#2c3e50"), bg="#ecf0f1")
+```
+
+## Question 11.
+
+Les indices sont en base 100 pour l’année 2015. Mettez-les en base 100 par rapport à la première date des données.
+
+Rappel : avec des data.frame on peut accéder à la colonne i avec inflation[, i] mais en data.table, par défaut, il interprète i comme un nom de colonne sans l’évaluer, comportement similaire à inflation\$i. Pour l’évaluer, il faut soit utiliser la notation des listes : inflation[[i]], soit forcer l’évaluation de i avec inflation[, i, with=FALSE].
+
+```{r}
+for(i in 2:ncol(inflation)){
+  inflation[[i]] <- inflation[[i]]/inflation[[i]][1]*100
+}
+head(inflation)
+
+matplot(inflation$Mois, inflation[,-1], xlab="Mois", 
+        ylab="Indice des prix à la consommation", type ="l", lty =1, lwd =2, 
+        col=c("#c0392b","#bdc3c7","#f39c12","#2980b9","#2c3e50"))
+legend ("topleft", legend=colnames(inflation)[-1], lty=1, lwd=2, 
+        col=c("#c0392b","#bdc3c7","#f39c12","#2980b9","#2c3e50"), bg="#ecf0f1")
+
+```
+
+Remarque :
+Pour des données de petite taille, le paquet data.table est superflu en termes d’efficacité; c’est davantage un choix pour sa syntaxe flexible. Cependant, pour des données importantes ou des manipulations complexes, il est plus efficace et rapide.
+
+```{r}
+matplot(inflation$Mois, inflation[,-1], xlab="Mois", 
+        ylab="Indice des prix à la consommation", type ="l", lty =1, lwd =2, 
+        col=c("#c0392b","#bdc3c7","#f39c12","#2980b9","#2c3e50"), xaxt = "n")
+ticks <- seq(min(inflation$Mois), max(inflation$Mois), by="2 year")
+axis(1, at=ticks, labels=format(ticks, "%Y"))
+grid(nx=NA ,ny=NULL)
+legend ("topleft", legend=colnames(inflation)[-1], lty=1, lwd=2, 
+        col=c("#c0392b","#bdc3c7","#f39c12","#2980b9","#2c3e50"), bg="#ecf0f1")
+
+```
+
+-   Lecture : en janvier 2024, l'indice des prix du tabac valait 500 ce qui signifie que le pris du tabac a augmenté en moyenne de 400% depuis 2000.
+
+-   Champ : France hors Mayotte, ensemble des ménages.
+
+-   Source : Insee, [**Indice des prix à la consommation.**](https://www.insee.fr/fr/metadonnees/source/serie/s1007)

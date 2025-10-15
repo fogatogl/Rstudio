@@ -1,0 +1,265 @@
+---
+title: "TD1_Stats_Desc_ENSA"
+output: pdf_document
+date: "2025-09-16"
+---
+
+# Statistique descriptive avec R - Correction TP 4
+
+Nous allons travailler sur les données `airquality` intégrées de R.
+
+Cette base de données nous donne différentes informations sur la qualité de l'air mesurée quotidiennement à New-York de Mai à Septembre 1973.
+
+Plus d'infos sur cette BDD dans la documentation R : <https://www.rdocumentation.org/packages/datasets/versions/3.6.2/topics/airquality>
+
+## Question 1.
+
+Explorez vos données.
+
+```{r}
+data(airquality)
+str(airquality)
+summary(airquality)
+#View(airquality)
+head(airquality)
+```
+
+Commentaire : ACOMPLETER
+
+## Question 2.
+
+La colonne Day donne le jour et la colonne Month donne le mois. En consultant l’aide de airquality, ajoutez une colonne Date qui est la date au format Date de R. Puis supprimez les colonnes Day et Month.
+
+<https://www.rdocumentation.org/packages/datasets/versions/3.6.2/topics/airquality>
+
+Commentaire :
+
+La colonne Month peut prendre des valeurs de 1 à 12 correspondant au numéro du mois. La variable Day correspond au numéro du jour dans le mois.
+
+```{r}
+airquality$Date <- as.Date(paste("1973", airquality$Month, airquality$Day, sep="-"), format="%Y-%m-%d")
+head(airquality)
+airquality$Day <- NULL
+airquality$Month <- NULL
+head(airquality)
+```
+
+## Question 3.
+
+La fonction `par` permet de contrôler les paramètres globaux du graphique.
+
+L’argument `mfrow=c(n, m)` permet d’afficher plusieurs graphiques à la fois : il y aura n lignes et m colonnes, c’est-à-dire n×m graphiques.
+
+L’argument `mar` contrôle la taille des marges.
+
+Appelez `par` dans le but d’afficher 4 graphiques avec comme marge c(4.1, 4, 2, 2), puis affichez les vecteurs Ozone, Solar.R, Wind et Temp en fonction de Date, en utilisant un pch de 16 et des couleurs modernes différentes pour chaque graphique.
+
+```{r}
+par(mfrow=c(2 ,2), mar=c(4.1,4,2,2))
+
+plot(airquality$Date, airquality$Ozone, xlab="Date", ylab=" Ozone", col="#c0392b", pch=16)
+plot(airquality$Date, airquality$Solar.R, xlab="Date", ylab="Solar.R", col="#27ae60", pch=16)
+plot(airquality$Date, airquality$Wind, xlab="Date", ylab="Wind", col="#2980b9", pch=16)
+plot(airquality$Date, airquality$Temp, xlab ="Date", ylab="Temp", col="#2c3e50", pch=16)
+```
+
+## Question 4.
+
+En explorant les données, nous avions pu voir la présence de NA. Calculez la proportion de NA par colonnes, ce qui permet d’identifier quelles colonnes sont touchées et en quelle proportion.
+
+```{r}
+head(is.na(airquality))
+colMeans(is.na(airquality))
+```
+
+Commentaire : ACOMPLETER
+
+## Question 5.
+
+Nous souhaitons estimer la valeur des données manquantes. Affichez Ozone et Solar.R en fonction de Wind et de Temp (4 graphiques) et commentez.
+
+```{r}
+par(mfrow=c(2 ,2), mar=c(4.1,4,2,2))
+plot (airquality$Wind, airquality$Ozone, xlab="Wind", ylab="Ozone", col="#c0392b", pch=16)
+plot(airquality$Temp, airquality$Ozone, xlab="Temp", ylab="Ozone", col="#c0392b", pch=16)
+plot(airquality$Wind, airquality$Solar.R, xlab="Wind", ylab="Solar.R", col="#27ae60", pch=16)
+plot(airquality$Temp, airquality$Solar.R, xlab="Temp", ylab="Solar.R", col="#27ae60", pch=16)
+```
+
+Commentaire : ACOMPLETER
+
+## Question 6.
+
+### Remarque sur les régressions linéaires : 
+
+#### Régression linéaire simple : 
+
+Imaginons qu'on veuille comprendre une relation entre deux variable. Par exemple : On a une base de données avec des heures d'études effectuées par des élèves et leur note à l'examen final et on veut étudier le lien entre le nombre d'heure d'étude et la note obtenue.
+
+```{r}
+set.seed(123)  #pour des résultats reproductibles
+
+etudiants <- data.frame(
+  Heures = round(runif(30, 1, 6), 1),     # entre 1 et 6h d’étude
+  Sommeil = round(runif(30, 4, 9), 1),    # entre 4 et 9h de sommeil
+  Cafes = sample(0:5, 30, replace = TRUE) # entre 0 et 5 cafés
+)
+
+# --- Création de la variable Note sur 20 ---
+etudiants$Note <- round(
+  5 + 1.2 * etudiants$Heures + 
+  0.4 * etudiants$Sommeil - 
+  0.3 * etudiants$Cafes + 
+  rnorm(30, mean = 0, sd = 0.8),
+  1
+)
+
+etudiants$Note <- pmin(etudiants$Note, 20)
+etudiants2 = etudiants[c('Heures', 'Note')]
+head(etudiants)
+head(etudiants2)
+```
+
+Si on regarde sur un graphique la note finale en fonction du nombre d'heure d'étude ça donne :
+
+```{r}
+plot(etudiants2$Heures,etudiants2$Note, pch=16, xlab='Nombre d\'heures étudiées', ylab='Note')
+```
+
+Les points ont l'air de se répartir autour d'une droite. Faire une régression linéaire, c'est trouver la droite qui passe au mieux par ces points (ie. qui minimisent la distance de l'ensemble des points à la droite).
+
+Cette droite a pour équation : $Note = \alpha + \beta * Heures$
+
+-   On appelle $\alpha$ l'intercept. C'est la note qu'aurait eu l'élève en moyenne s'il n'avait pas étudié du tout.
+
+-   La pente $\beta$ représente de combien la note augmente en moyenne pour chaque heure d'étude supplémentaire.
+
+En R on peut obtenir les paramètres $(\alpha , \beta)$ de cette droite grâce à la fonction `lm`.
+
+```{r}
+summary(lm(Note~Heures, data=etudiants2))
+```
+
+Donc ici on constate que sans étudier les étudiants ont en moyenne 6.8/20 et que chaque heure d'étude ajoute en moyenne 1.2 points sur leur note finale.
+
+```{r}
+reg = lm(Note~Heures, data=etudiants2)
+plot(etudiants2$Heures,etudiants2$Note, pch=16, xlab='Nombre d\'heures étudiées', ylab='Note')
+abline(reg, col="red")
+```
+
+#### Régression linéraire multiple
+
+Ok maintenant dans la vraie vie, on a en fait plusieurs variables qui peuvent avoir une influence. Dans notre exemple, la note d'un élève peut dépendre du nombre d'heures étudiées mais aussi du nombre d'heures de sommeil que l'élève a pu avoir avant l'examen, du nombre de cafés qu'il boit...
+
+L'équation devient alors :
+
+$Note = \alpha + \beta_1​*Heures + \beta_2​*Sommeil + \beta_3*Cafés$
+
+-   $\alpha$ l'intercept est toujours notre point de départ. C'est la note qu'aurait eu l'élève en moyenne s'il n'avait pas étudié du tout, qu'il n'avait pas dormis et qu'il ne buvait aucun café.
+
+-   Les $\beta$ représente les effets de chaque variable explicative. Chaque $\beta$ nous dit à quel point une variable influence la note, en tenant compte des autres variables.
+
+```{r}
+summary(lm(Note~., data=etudiants))
+```
+
+On peut voir ici que :
+
+-   l'effet d'une heure d'étude toutes choses égales par ailleurs augmente la note en moyenne de 1.2 points
+
+-   une heure de sommeil supplémentaire toutes choses égales par ailleurs augmente la note de 0.5 points en moyenne
+
+-   un café bu supplémentaire diminue la note de -0.08 points mais attention ce coefficient est non significatif. (test statistique (H0: le coefficient beta est non nulle) rejetée au seuil 5%).
+
+La régression linéaire peut par exemple permettre ici de prédire la note en fonction des différentes variables explicatives. Remarque sur le R2. Revenons au TD.
+
+Nous allons utiliser une régression linéaire afin d’estimer les données manquantes. Faites la régression linéaire de Ozone et de Solar.R contre toutes les autres variables et, avec summary, itérativement, supprimez les variables explicatives non significatives (on utitilisera le seuil de 5%).
+
+```{r}
+#summary(lm(Ozone~., data=airquality))
+summary(lm(Ozone~.-Date, data=airquality))
+```
+
+```{r}
+#summary(lm(Solar.R~., data=airquality))
+#summary(lm(Solar.R~.-Wind, data=airquality))
+#summary(lm(Solar.R~.-Wind -Temp, data=airquality))
+summary(lm(Solar.R~ Ozone, data=airquality))
+```
+
+## Question 7.
+
+On observe que Ozone et Solar.R s’utilisent mutuellement pour s’estimer. Affichez Ozone en fonction de Solar.R
+
+```{r}
+par(mfrow=c(1,1))
+plot(airquality$Ozone, airquality$Solar.R, xlab="Solar.R", ylab="Ozone", col="#c0392b", pch=16)
+```
+
+Commentaire :
+
+## Question 8.
+
+Est-ce qu’il y a des cas où à la fois Ozone et Solar.R sont NA ? Ces données ne pourront pas être estimées dans un premier temps.
+
+```{r}
+sum(is.na(airquality$Ozone) & is.na(airquality$Solar.R))
+```
+
+Commentaire : pour ces données on ne peut pas utiliser la méthode employée
+
+## Question 9.
+
+Faites une copie de airquality dans une variable nommée aq, faites la régression linéaire sélectionnée pour la variable expliquée Ozone, puis remplacez dans aq les données où Ozone est NA par l’estimation de la régression linéaire, seulement quand Solar.R n’est pas NA. On utilisera predict pour obtenir les estimations de Ozone par la régression linéaire.
+
+```{r}
+aq <- airquality
+head(aq)
+```
+
+```{r}
+reg_Ozone <- lm(Ozone ~.-Date, data=airquality)
+reg_Ozone
+```
+
+```{r}
+Indices <- is.na(airquality$Ozone) & !is.na(airquality$Solar.R)
+#Indices
+```
+
+```{r}
+aq$Ozone[Indices] <- predict(reg_Ozone, newdata=airquality[Indices,])
+aq$Ozone_isna <- Indices
+aq
+```
+
+## Question 10.
+
+Faites de même pour remplacer données manquantes de Solar.R là où c’est possible.
+
+```{r}
+reg_Solar.R <- lm(Solar.R ~ Ozone, data=airquality)
+Indices2 <- is.na(airquality$Solar.R) & !is.na(airquality$Ozone)
+aq$Solar.R[Indices2] <- predict(reg_Solar.R, newdata=airquality[Indices2,])
+aq$Solar.R_isna <- Indices2
+aq
+```
+
+
+
+
+## Question 11.
+
+Affichez Ozone et Solar.R en fonction de Date avec les données complétées. Les données estimées seront mises en évidence, dans les deux graphiques, elles auront un pch de 17 et une couleur sombre. Faites une critique.
+
+```{r}
+par(mfrow=c(1,2))
+plot(aq$Date, aq$Ozone, xlab ="", , ylab =" Ozone ", pch=16+aq$Ozone_isna, 
+     col=c("#c0392b","#2c3e50")[1+aq$Ozone_isna])
+plot (aq$Date, aq$Solar.R, xlab="", ylab="Solar.R", pch=16+aq$Solar.R_isna, 
+      col=c("#27ae60","#2c3e50")[1+aq$Solar.R_isna])
+
+```
+
+Commentaire : ACOMPLETER

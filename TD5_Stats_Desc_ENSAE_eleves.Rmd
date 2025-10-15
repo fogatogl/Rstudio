@@ -123,16 +123,16 @@ mean_sd <- function(x){
 tapply(flights$dep_delay, flights$origin, mean_sd)
 ```
 
-Commentaire : ACOMPLETER
+Commentaire : très grand écart type par rapport à la moyenne
 
 ## Question 4.
 
 Faites la question précédente en utilisant la syntaxe de data.table. On utilisera la syntaxe mon.data.table[, f(colonneB), by=colonneA] où on agrège par f la colonneB selon les modalités de la colonneA. Pour obtenir ensemble la moyenne et l’écart-type (mais aussi pour nommer une colonne au renvoi), on utilisera la syntaxe plus générale mon.data.table[, .(nom1 = f(colonneB), nom2 = g(colonneC)), by=colonneA].
 
 ```{r}
-flights[,mean(ACOMPLETER), by=ACOMPLETER]
-flights[,sd(ACOMPLETER), by=ACOMPLETER]
-flights[,.(Moyenne=ACOMPLETER, EcartType = ACOMPLETER), by=ACOMPLETER]
+flights[,mean(dep_delay), by=origin]
+flights[,sd(dep_delay), by=origin]
+flights[,.(Moyenne=mean(dep_delay), EcartType = sd(dep_delay)), by=origin]
 ```
 
 ## Question 5.

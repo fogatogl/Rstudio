@@ -1,0 +1,225 @@
+---
+title: "TD1_Stats_Desc_ENSA"
+output: pdf_document
+date: "2025-09-16"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Statistique descriptive avec R - Correction TP 1
+
+R possède des jeux de données intégrés. Nous allons travailler sur les données iris, une data.frame déjà présente dans R.
+
+On rappelle que pour accéder à l’aide d’une fonction, on peut utiliser help(nom_fonction).
+
+La fonction **`str`** appliquée à une data.frame permet de voir les noms des colonnes, leurs types, et quelques valeurs.
+
+```{r}
+str(iris)
+```
+
+Un Factor est un type de variable utilisé pour représenter des variables qualitatives. Chaque catégorie de la variable est appelé "level". Ici les levels sont les 3 espèces d'Iris.
+
+```{r}
+#on utilise le $ pour faire appel aux variables du dataframe
+levels(iris$Species)
+```
+
+On peut avoir une représentation rapide des minimums, maximums, moyennes et quartiles de chaque colonne avec `summary`.
+
+```{r}
+summary(iris)
+```
+
+Pour explorer au-delà d’un affichage dans la console, on peut utiliser la fonction `View`.
+
+```{r}
+View(iris)
+```
+
+```{r}
+iris
+head(iris)
+```
+
+La fonction `tapply` est similaire à l’opération Group By de SQL. Elle a la forme tapply(x, y, f) où x est un vecteur de données quantitatives, y est un vecteur de modalités de même taille, et f est une fonction d’agrégation (f : Rn →R). Ici, tapply calcule la fonction f sur x pour chaque modalité de y.
+
+Par exemple, nous pouvons calculer la longueur moyenne de Sepal.Length dans iris pour chaque espèce.
+
+```{r}
+tapply(iris$Sepal.Length, iris$Species, mean)
+```
+
+## Question 1.
+
+La fonction f, qui est ci-dessus mean, peut aussi être programmée.
+
+Calculez la moyenne des valeurs en excluant le minimum et le maximum, c’est-à-dire :
+
+$f(x) = \frac{1}{n-2} \sum_{i=1}^{n} \left( x_i - \min(x) - \max(x) \right)$
+
+```{r}
+f <- function(x){
+  res = 
+  return (res)
+}
+      
+tapply (iris$Sepal.Length, iris$Species, f)
+```
+
+## Question 2.
+
+Pour obtenir la matrice de corrélation des données quantitatives de iris, on exclut ladernière colonne et on utilise la fonction `cor`. Affichez la matrice de corrélation des données quantitatives de iris.
+
+```{r}
+str(iris) #la dernière colonne de Iris n'est pas une variable quantitative on va l'exclure
+iris[,-5] #on sélectionne toutes les lignes, et toutes les colonnes sauf la 5eme
+```
+
+```{r}
+cor(iris[,-5])
+```
+
+## Question 3.
+
+La fonction `plot(x, y)` permet d’afficher y en fonction de x. Affichez Petal.Length en fonction de Petal.Width.
+
+```{r}
+plot(iris$Petal.Width, iris$Petal.Length)
+```
+
+## 
+Question 4.
+
+Changez de style de point en utilisant l’argument `pch`=16, et choisir une couleur moderne en piochant dans la palette <https://flatuicolors.com/palette/defo> (e.g. le bleu sombre).
+
+```{r}
+plot(iris$Petal.Width, iris$Petal.Length, pch=16, col="")
+```
+
+Remarque : une bonne pratique est de faire attention à la lisibilité des couleurs de vos graphiques. Vous pouvez par ailleurs tester la lisibilité de vos images sur ce site qui simule différents types de daltonisme.
+
+<https://www.fr.colorlitelens.com/images/tesztek/simulator/>
+
+## Question 5.
+
+Mettez une étiquette pour les abscisses :"Largeur des pétales" et pour les ordonnées :"Longueur des pétales" avec les arguments `xlab` et `ylab` de `plot`.
+
+```{r}
+plot (iris$Petal.Width, iris$Petal.Length, pch =16, col="#d35400", xlab ="Largeur des pétales", ylab ="Longueur des pétales")
+```
+
+## 
+Question 6.
+
+Pour faire une régression linéaire, on utilise la syntaxe `lm(y ~ x, data=mes_donnees)` où
+
+-   mes_donnees est la data.frame qui contient les données
+
+-   x est le nom de la colonne de la variable explicative
+
+-   y est le nom de la colonne de la variable à expliquer
+
+Faites la régression linéaire de Petal.Width en fonction de Petal.Length et enregistrez-la dans une variable nommée reg.
+
+```{r}
+reg <- lm(Petal.Length ~ Petal.Width, data=iris)
+```
+
+## Question 7.
+
+Vérifiez que c'est une liste et obtenez le nom des éléments avec `names`.
+
+```{r}
+is.list (reg)
+names(reg)
+reg$coefficients
+```
+
+## Question 8.
+
+Ajoutez la droite de régression avec `abline` avec une épaisseur de 2 (argument `lwd`) et une couleur sombre.
+
+```{r}
+plot (iris$Petal.Width, iris$Petal.Length, pch =16, col="#d35400", xlab ="Largeur des pétales", ylab ="Longueur des pétales")
+abline (reg, lwd=2, col="#2c3e50")
+```
+
+## 
+Question 9.
+
+Ajoutez une légende avec `legend` en haut à gauche. Indiquer le type de point (argument `pch`) dans la légende affiche un point, et indiquer l’épaisseur du trait (argument `lwd`) affiche un trait. `NA` permet de dire qu’il n’y a rien. La fonction `legend` est vectorielle.
+
+```{r}
+plot (iris$Petal.Width, iris$Petal.Length, pch =16, col="#d35400", xlab ="Largeur des pétales", ylab ="Longueur des pétales")
+abline (reg , lwd =2, col="#2c3e50")
+legend ("topleft", legend=c("Données", "Régression"), pch=c(16, NA), lwd = c(NA, 2), col= c("#d35400", "#2c3e50"))
+```
+
+## Question 10.
+
+Dans le graphique, les largeurs et longueurs des pétales sont affichées pour toutes les espèces. On souhaite mettre une couleur différente en fonction de l’espèce.
+
+On choisit la couleur "#16a085" pour setosa, "#c0392b" pour versicolor et "#8e44ad" pour virginica.
+
+Construisez un vecteur couleurs de la même longueur que le nombre de lignes des données, avec la valeur constante "#16a085".
+
+```{r}
+couleurs <- rep("#16a085", nrow(iris))
+```
+
+## Question 11.
+
+Pour les indices où l’espèce est versicolor, remplacez la valeur de couleurs par "#c0392b". Faites de même pour virginica.
+
+```{r}
+couleurs[iris$Species == "versicolor"] <- "#c0392b"
+couleurs[iris$Species == "virginica"] <- "#8e44ad"
+```
+
+## Question 12.
+
+Affichez le graphique complet avec les couleurs par espèce, en adaptant la légende.
+
+```{r}
+plot(iris$Petal.Width, iris$Petal.Length, pch=16, col=couleurs, xlab ="Largeur des pétales", ylab ="Longueur des pétales")
+abline(reg, lwd=2, col="#2c3e50")
+legend("topleft", legend=c("Setosa", "Versicolor", "Virginica", "Régression"), pch=c(16, 16, 16, NA), lwd=c(NA, NA, NA, 2), 
+       col=c("#16a085", "#c0392b", "#8e44ad", "#2c3e50"))
+```
+
+## Question 13.
+
+Ajoutez un maillage avec la fonction `grid` et mettez une couleur de fond à votre légende.
+
+```{r}
+plot(iris$Petal.Width, iris$Petal.Length, pch =16, col=couleurs, xlab="Largeur des pétales", ylab="Longueur des pétales")
+grid(col="#bdc3c7", lty=3)
+abline(reg, lwd=2, col="#2c3e50")
+legend("topleft", legend=c("Setosa", "Versicolor", "Virginica", "Régression"), pch=c(16, 16, 16, NA), lwd=c(NA, NA, NA, 2), 
+       col=c("#16a085", "#c0392b", "#8e44ad", "#2c3e50"), bg="#ecf0f1")
+```
+
+## 
+Question 14.
+
+Enregistrez votre graphique au format PDF grâce à la fonction `pdf` avec une largeur de 10 et une hauteur de 7. On place l’appel à la fonction pdf avant de générer le graphique, et une fois le graphique terminé, on conclut avec `dev.off()` qui ferme et enregistre le PDF.
+
+```{r}
+
+pdf("mon_graphique.pdf", width =10 , height =7)
+
+plot(iris$Petal.Width, iris$Petal.Length, pch =16, col=couleurs, xlab="Largeur des pétales", ylab="Longueur des pétales")
+grid(col="#bdc3c7", lty=3)
+abline(reg, lwd=2, col="#2c3e50")
+legend("topleft", legend=c("Setosa", "Versicolor", "Virginica", "Régression"), pch=c(16, 16, 16, NA), lwd=c(NA, NA, NA, 2), 
+       col=c("#16a085", "#c0392b", "#8e44ad", "#2c3e50"), bg="#ecf0f1")
+
+dev.off()
+```
+
+```{r}
+getwd()
+```

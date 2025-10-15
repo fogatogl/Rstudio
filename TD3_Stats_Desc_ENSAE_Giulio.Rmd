@@ -1,0 +1,305 @@
+---
+title: "TD1_Stats_Desc_ENSA"
+output: pdf_document
+date: "2025-09-16"
+---
+
+# Statistique descriptive avec R - Correction TP 3
+
+Téléchargez au format CSV l’historique d’un portefeuille investi sur le SP500 :
+
+<https://curvo.eu/backtest/fr/indice/sp-500?currency=eur#graphique>
+
+(Bouton CSV en haut à droite quand vous cliquez sur le lien)
+
+Enregistrez les données dans votre répertoire habituel des TD.
+
+Présentation des données :
+
+Le **S&P 500** est un indice boursier basé sur 500 grandes sociétés cotées sur les bourses aux Etats-Unis. En gros il mesure l'évolution des 500 plus grandes sociétés cotées aux Etats-Unis et sert d'indicateur de la performance des marchés d'actions américains. (Je vous laisse faire vos recherches si vous voulez en savoir plus)
+
+## Question 1.
+
+Importez les données et mettez la première colonne au format Date au 1er janvier, vous spécifierez le type des données à l’importation.
+
+```{r}
+file_path = '~/work/chart.csv'
+readLines(file_path, n = 5)
+```
+
+```{r}
+sp500 <- read.csv(file_path, colClasses=c("character","numeric"), sep=",", dec=".")
+head(sp500)
+
+sp500$Date <- as.Date(paste0("01/",sp500$Date), format="%d/%m/%Y")
+head(sp500)
+```
+
+Pour voir à quoi ça ressemble :
+
+```{r}
+library(ggplot2)
+ggplot(sp500, aes(x = Date, y = S.P.500)) +
+  geom_line(linewidth = 1) +
+  labs(x = "Date",
+       y = "Indice SP500 \nvaleur du portefeuille (EUR)") +
+  scale_x_date(date_breaks = "5 years", date_labels = "%Y")+
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+```
+
+## Question 2.
+
+Ajoutez la colonne Perf définie comme la performance mensuelle du SP500 :
+
+$\text{Perf}_t := \frac{SP500_t - SP500_{t-1}}{SP500_{t-1}}, \quad t \geq 2.$
+
+Mettez NA pour le premier mois où ce n’est pas calculable.
+
+```{r}
+#on commence par écrire le calcul vectoriel sans se soucier du premier terme
+Perf <- (sp500$S.P.500[-1]-sp500$S.P.500[-nrow(sp500)])/sp500$S.P.500[-nrow(sp500)]
+
+```
+
+```{r}
+n <- nrow(sp500)
+sp500$Perf <- c(NA, (sp500$S.P.500[-1]-sp500$S.P.500[-nrow(sp500)])/sp500$S.P.500[-nrow(sp500)])
+head(sp500)
+```
+
+Pour voir à quoi ça ressemble :
+
+```{r}
+library(ggplot2)
+ggplot(sp500, aes(x = Date, y = Perf)) +
+  geom_point()+
+  labs(x = "Date",
+       y = "Indice SP500 \nperformance mensuelle") +
+  scale_x_date(date_breaks = "5 years", date_labels = "%Y")+
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  geom_hline(yintercept = 0, color = "red", linewidth = 0.5)
+```
+
+## Question 3.
+
+Affichez l'histogramme des performances
+
+```{r}
+hist(sp500$Perf, col="#3498db", xlab="Performance mensuelle", ylab ="Fréquence", 
+      main="SP500")
+```
+
+Commentaire : ACOMPLETER
+
+## Question 4.
+
+Définissez une variable `Perf` : le vecteur des performances calculées sans la donnée manquante, puis définissez une variable batons : une séquence qui démarre de la valeur minimale de vos données arrondie au centième et s’achève à la valeur maximale arrondie au centième, avec un pas d’un centième.
+
+```{r}
+Perf <- sp500$Perf[!is.na(sp500$Perf)]
+batons <- seq(round(min(Perf),2), round(max(Perf),2), by=0.01)
+batons
+```
+
+## Question 5.
+
+Affichez l’histogramme en utilisant un pas d’un centième pour les bâtons.
+
+```{r}
+hist (Perf, breaks=batons, col="#3498db", xlab="Performance mensuelle", ylab="Fréquence",
+      main="SP500")
+```
+
+Commentaire : ACOMPLETER
+
+## Question 6.
+
+Calculez la moyenne et l’écart-type des performances.
+
+```{r}
+mu <- mean(Perf)
+sigma <- sd(Perf)
+print(paste0('la moyenne des performances est : ', mu))
+print(paste0('l\'équart-type des performances est : ', sigma))
+
+#et si on utilise directement la variable Perd de la BDD ? 
+mu2 <- mean(sp500$Perf)
+sigma2 <- sd(sp500$Perf)
+print(paste0('la moyenne des performances est : ', mu2))
+print(paste0('l\'équart-type des performances est : ', sigma2))
+
+mu3 <- mean(sp500$Perf, na.rm = TRUE)
+sigma3 <- sd(sp500$Perf, na.rm = TRUE)
+print(paste0('la moyenne des performances est : ', mu3))
+print(paste0('l\'équart-type des performances est : ', sigma3))
+```
+
+## Question 7.
+
+Sur votre histogramme, affichez la densité gaussienne avec la moyenne et la variance empiriques calculées. Pour comparer l’histogramme à la densité, il faut ajouter l’argument `freq=FALSE` à celui-ci.
+
+```{r}
+hist(Perf, breaks=batons, col="#3498db", freq=FALSE, xlab="Performance mensuelle", 
+     ylab="Densité", main="SP500")
+lines(batons, dnorm(batons, mu, sigma), col="#e74c3c", lwd=3)
+```
+
+## Question 8.
+
+La fonction `density` permet d’obtenir la densité empirique par la méthode des noyaux définie par :  
+
+$\hat{f}(x) := \frac{1}{n} \sum_{i=1}^{n} \frac{1}{h} 
+K\!\left(\frac{x - x_i}{h}\right), 
+\quad x \in \mathbb{R}.$
+
+où $(xi)_{1≤i≤n}$ est l’échantillon observé, h est la fenêtre (R la calculera de manière optimale) et K est une densité centrée réduite (par défaut, R utilise la loi normale).
+
+En utilisant les paramètres par défaut de density, affichez la densité empirique des performances et comparez à celle de la loi normale.
+
+Remarque : la densité empirique par la méthode des noyaux permet d'estimer la densité de probabilité d'une variable aléatoire continue à partir d'un échantillon sans faire d'hypothèse paramétrique (pas de gaussienne par ex.). Quand on trace un histogramme, on va compter le nombre de points dans chaque fenêtre qu'on a défini. Ici on va attribuer un noyau à chaque point puis moyenner pour obtenir une fonction continue. \
+(pour aller plus loin : <https://fr.wikipedia.org/wiki/Estimation_par_noyau>)
+
+![](images/Capture d’écran 2025-09-30 à 14.48.35.png){width="347"}
+
+```{r}
+plot(density(Perf), col="#3498db", xlab="Performance mensuelle", ylab ="Densité", 
+     main="SP500", lwd=2)
+lines(batons, dnorm(batons, mu, sigma), col="#c0392b", lwd=2)
+legend("topleft", legend=c('données','loi normale'), lty=1, lwd=2, 
+        col=c("#3498db","#c0392b"), bg="#ecf0f1")
+```
+
+Commentaire : assez grand décalage de la distribution normale...
+
+##  Question 9.
+
+Nous allons tester si les données sont normales. Nous allons utiliser le test de Jarque-Bera. Calculez la skewness et le kurtosis et commentez par rapport à la loi normale.
+
+### Remarque autour des tests statistiques : 
+
+Le test de Jarque-Bera est un test statistique utilisé pour vérifier si un ensemble de données suit une distribution normale.
+
+1.  Un test statistique sert à prendre un décision sur une population à partir d'un échantillon de données. Ici notre question est : « Les performances mensuelles du SP500 suivent-elles une loi normale ? ».
+
+2.  Pour y répondre, on va formuler une hypothèse nulle H0 qui représente ce que l'on suppose vrai par défaut. (ici "H0 : les données sont normalement distribuées").
+
+3.  On choisi ensuite une statistique de test S. C'est une fonction qui résume l'information sur l'échantillon que l'on souhaite tester. S est choisi de manière à connaitre sa loi sous H0. (ici on utilisera la statistique du test de Jarque-Bera)
+
+4.  A partir des données on va calculer la statistique observée Sobs.
+
+5.  Sobs est ensuite comparée à ce qu'on attendrait de S si H0 était vraie (ici on s'attend si H0 est vraie à ce que S suivent une loi du chi2 à 2 degrés de liberté). Cela permet de mesurer si le résultat observé est crédible ou surprenant sous H0.
+
+6.  Pour faire ça on va utiliser la p-valeur. C'est la probabilité d'obtenir une statistique au moins aussi extrême que celle observée si H0 était vraie.
+
+    Petite p-valeur -\> H0 improbable -\> on rejette H0
+
+    Grande p-valeur -\> H0 plausible -\> on ne rejette pas H0
+
+Finalement on va décider de rejeter ou non H0 en fonction de la p-valeur et d'un seuil choisi (souvent 5%)
+
+### Remarque Skewness et Kurtosis : 
+
+La statistique du test de Jarque-Bera se base sur deux caractéristiques de la distribution :
+
+-   La skewness (asymétrie) : mesure l'asymétrie d'une distribution autour de sa moyenne
+
+    -   skewness=0 distribution symétrique,
+
+    -   skewness\>0 asymétrie positive (queue de distribution plus longue à droite)
+
+    -   skewness\<0 asymétrie négative (queue de distribution plus longue à gauche)
+
+![](https://www.scribbr.com/wp-content/uploads/2022/05/Skewness-of-a-distribution-Large.webp){alt="Skewness | Definition, Examples & Formula" width="1212"}
+
+-   Le kurtosis (aplatissement) : mesure l'aplatissement de la distribution par rapport à la loi normale
+
+    -   kurtosis = 3 distribution normale
+
+    -   kurtosis \> 3 distribution leptokurtique (pic plus pointu queues de distribution plus épaisses)
+
+    -   kurtosis \< 3 distribution platykurtique (pic plus plat queues de distribution plus fines)
+
+![](https://analystprep.com/cfa-level-1-exam/wp-content/uploads/2019/08/page-64.png){alt="Kurtosis and Skewness in Distributions | CFA Level 1" width="627"}
+
+Voilà la courbe qu'on a tracé précédemment, qu'est ce qu'on s'attend à avoir comme skewness et kurtosis ?
+
+![](http://127.0.0.1:25425/chunk_output/2D14D67F2468ee22/9E714A88/cydazv40cbeqv/000036.png){width="527"}
+
+```{r}
+S <- mean(((sp500$Perf-mu)/sigma)^3, na.rm=TRUE)
+K <-mean(((sp500$Perf-mu)/sigma)^4, na.rm=TRUE)
+
+print(paste0('la Skewness des performances est : ', S))
+print(paste0('le Kurtosis des performances est : ', K))
+```
+
+Commentaire : ACOMPLETER
+
+## Question 10. 
+
+Le test de Jarque-Bera repose sur le résultat de convergence suivant : si les données $(Xi)_{1≤i≤n}$ sont normales et i.i.d.,
+
+$JB_n := n \left( \frac{S_n^2}{6} + \frac{(K_n - 3)^2}{24} \right) 
+\;\;\xrightarrow[n \to \infty]{}\;\; \chi^2_{2}.$
+
+où Sn est le skewness des données et Kn en est le kurtosis. Calculez JBn.
+
+```{r}
+n_Perf <- length(Perf)
+JB <- n_Perf*(S^2/6 + (K-3)^2/24)
+print(paste0('JBn = ', JB))
+```
+
+```{r}
+x <- seq(0, 25, length.out = 1000)
+y <- dchisq(x, df = 2)
+
+plot(x, y, type = "l", lwd = 2,
+     main = "Densité de la loi du chi² (ddl = 2)",
+     xlab = "x", ylab = "densité")
+abline(h = 0, col = "grey")
+abline(v = 0, col = "grey")
+abline(v = JB, col = "red", lwd = 2, lty = 2)
+```
+
+Commentaire : ACOMPLETER
+
+## Question 11.
+
+La p-valeur est la probabilité, sous l’hypothèse nulle {H0 : Les performances sont gaussiennes}, d’obtenir une statistique de test au moins aussi extrême que celle observée, dans la queue de la distribution. Ici, pour le test de Jarque-Bera, elle correspond à $P(χ_2^2 >JB_n)$ où $JB_n$ est la valeur du test observée empiriquement. Calculez la p-valeur et concluez.
+
+```{r}
+pvaleur <- 1-pchisq(JB, df=2)
+print(paste0('la p-valeur est : ', pvaleur))
+```
+
+On fixe le seuile de 5% pour le test de Jarque-Bera.
+
+Commentaire : c'est pas très bon...
+
+## Question 12.
+
+Mettez le calcul du test dans une fonction de R.
+
+```{r}
+Test.JB <- function(x){
+  z <- x[!is.na(x)]
+  n_z <- length(z)
+  mu <- mean(z)
+  sigma <- sd(z)
+  S <- mean(((z-mu)/sigma)**3)
+  K <- mean(((z-mu)/sigma)**4)
+  JB <- n_z*((S**2)/6 +((K-3)**2)/24)
+  p_value = 1-pchisq(JB, df=2)
+  print(paste0("p-valeur : ",p_value))
+  if(p_value<0.05){
+    print('L\'hypothèse H0 de normalité est rejetée au seuil 5%')
+  } else{
+    print('L\'hypothèse H0 de normalité n\'est pas rejetée au seuil 5%')
+  }
+}
+Test.JB(sp500$Perf)
+```
