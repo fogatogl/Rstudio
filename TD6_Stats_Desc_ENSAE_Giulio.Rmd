@@ -1,0 +1,309 @@
+---
+title: "TD6_Stats_Desc_ENSA"
+output: pdf_document
+date: "2025-09-16"
+---
+
+# Statistique descriptive avec R - Correction TP 6
+
+Nous allons travailler sur des données d’assurance du paquet `CASdatasets`.
+
+## Question 1.
+
+Le paquet est trop volumineux pour être hébergé sur le CRAN en raison de données lourdes (236 Mo). Commencez par l’installer à l’aide du code suivant, puis vérifiez qu’il se charge correctement.
+
+```{r}
+
+install.packages("CASdatasets", repos="https://cas.uqam.ca/pub/", type="source")
+library(CASdatasets)
+```
+
+## Question 2.
+
+Chargez les jeux de données `freMTPLfreq` et `freMTPLsev` avec la fonction data, puis convertissez-les en objets data.table sans effectuer de copie.
+
+-   Le premier jeu de données décrit les polices d’assurance automobile, avec leurs caractéristiques et le nombre de sinistres associés;
+
+-   le second contient les détails des sinistres individuels correspondants.
+
+```{r}
+library(data.table)
+data(freMTPLfreq)
+data(freMTPLsev)
+setDT(freMTPLfreq)
+setDT(freMTPLsev)
+```
+
+```{r}
+str(freMTPLfreq)
+head(freMTPLfreq)
+str(freMTPLsev)
+head(freMTPLsev)
+```
+
+freMTPLfreq
+
+-   PolicyID : identifiant de la police
+
+-   ClaimNb : nombre de sinistres observés par la police d'assurance pendant la période d'exposition
+
+-   Exposure : période d'exposition de la police en années
+
+-   Power : puissance de la voiture (en catégories ordonnées)
+
+-   CarAge : age du véhicule en années
+
+-   DriverAge : age du conducteur en années (+18)
+
+-   Brand : marque du véhicule (divisé en groupes)
+
+-   Gas : type de d'essence (Diesel ou regular)
+
+-   Region : région de la police d'assurance (anciennes régions pré 2016)
+
+-   Density : densité d'habitants (hab/km2) de la ville d'habitation du conducteur
+
+freMTPLsev
+
+-   PolicyID : identifiant de la police
+
+-   ClaimAmount : Coût du sinistre
+
+pour plus d'infos : <https://dutangc.github.io/CASdatasets/reference/freMTPL.html>
+
+## Question 3.
+
+Commençons par le jeu de données `freMTPLfreq`. La colonne `ClaimNb` indique le nombre de
+
+sinistres observés par police. Affichez le tableau des fréquences pour chaque nombre de sinistres,
+
+puis calculez la moyenne et la variance de cette variable.
+
+```{r}
+table(freMTPLfreq$ClaimNb)
+mean(freMTPLfreq$ClaimNb)
+var(freMTPLfreq$ClaimNb)
+```
+
+Commentaire : très bien pour l'assurance
+
+## Question 4.
+
+La colonne `Exposure` correspond à la durée d’observation de chaque assuré (en années).
+
+Pour un assuré i d’exposition $E_i$, on s’attend à $\lambda$ sinistres par unité d’exposition, soit
+
+$$\mathbb{E}[N_i] = λE_i $$ où $N_i$ est le nombre de sinistres subi par la police i.
+
+Sous une loi de Poisson $N_i ∼P(λE_i)$, on aurait aussi $Var(N_i) =λE_i$.
+
+1.  Proposez deux estimateurs de $λ$:
+
+    -   $λ_1^n$ basé sur la moyenne empirique (moyenne pondérée)
+
+    -   $λ_2^n$ basé sur la variance (sous hypothèse poissonienne).
+
+2.  Concluez, sans test formel, si les données semblent suivre a priori une loi de Poisson.
+
+### Explications
+
+On cherche ici à modéliser (ou décrire) le nombre de sinistre subi par les polices d'assurance par une loi (comme on le fait en physique). On choisi ici une loi de Poisson de paramètre $\lambda$ inconnu que l'on cherche à estimer. Les données que l'on observe dans notre base sont alors des réalisation de cette loi et on va s'en servir pour estimer $\lambda$.
+
+$$
+\mathbb{P}(X=k)=e^{-\lambda}\frac{\lambda^k}{k!}, k \in\mathbb{N}
+$$
+
+Rappel sur la loi de Poisson :
+
+La loi de Poisson est une loi de probabilité discrète, elle est définie sur $\mathbb{N}$. Elle associe une probabilité à un nombre d'évènement se produisant dans un intervalle de temps fixé si ces évènements se produisent avec une fréquence moyenne ou espérance connue, et indépendamment du temps écoulé depuis l'évènement précédent.
+
+Exemple : Vous étudiez le nombre d'appels que reçoivent les régulateurs du Samu par minute. Le centre d'appel reçoit en moyenne 3 appels par minute. On utilise une loi de Poisson de paramètre $\lambda = 3$ et la probabilité que le centre d'appel reçoive 5 appels dans la prochaine minute est :
+
+$$
+\mathbb{P}(X=5)=e^{-3}\frac{3^5}{5!}\approx 0.1
+$$
+
+### Réponse
+
+Soit n le nombre de polices. $\mathbb{E}[\frac{N_i}{E_i}] = λ$, un estimateur simple (non pondéré) serait
+$$
+\hat{\lambda}_{n}^{0} := \frac{1}{n} \sum_{i=1}^{n} \frac{N_i}{E_i}
+$$
+Cependant, si la variance est proportionnelle à $E_i$ comme proposé, l’estimateur ci-dessus n’est pas optimal. En effet on donne le même poids à toutes les polices alors que certaines ont des temps d'exposition $E_i$ plus longs que d'autres et donc ont "eu le temps d'emmagasiner plus d'information sur $\lambda$ ( $Var[\frac{N_i}{E_i}] = \frac{λ}{E_i}$).
+
+On va donc faire une moyenne pondérée avec un poids proportionnel à $\frac{1}{Var[\frac{N_i}{E_i}]} = \frac{E_i}{\lambda} \propto E_i$ ce qui donne :
+
+$$
+\hat{\lambda}_{n}^{1} := \frac{1}{\sum_{i=1}^{n} E_i} \sum_{i=1}^{n} E_i\frac{N_i}{E_i}
+$$
+
+$$
+\hat{\lambda}_{n}^{1} := \frac{\sum_{i=1}^{n} N_i}{\sum_{i=1}^{n} E_i}
+$$
+Pour la variance, comme
+
+$Var(N_i) = \lambda Ei$ \
+$\mathbb{E}[(N_i - \mathbb{E}[N_i])^{2}] = \lambda Ei$
+$\mathbb{E}[(N_i - \lambda E_i)^{2}] = \lambda Ei$\
+$\mathbb{E}[\frac{(N_i - \lambda E_i)^{2}}{E_i}] = \lambda$,
+
+on peut utiliser
+
+$$
+\hat{\lambda}_{n}^{2} := \frac{1}{n} \sum_{i=1}^{n} \frac{(N_i-\hat{\lambda}_{n}^{1}E_i)^2}{E_i}
+$$
+
+```{r}
+lambda1 = sum(freMTPLfreq$ClaimNb)/sum(freMTPLfreq$Exposure)
+
+lambda2 = 1/length(freMTPLfreq$ClaimNb) * sum((freMTPLfreq$ClaimNb - lambda1*freMTPLfreq$Exposure)**2/freMTPLfreq$Exposure)
+print(paste('lambda1 : ',lambda1))
+print(paste('lambda2 : ',lambda2))
+```
+
+Commentaire : ACOMPLETER
+
+## Question 5.
+
+À l’aide de $λ^1_n$, calculez les fréquences théoriques du nombre de sinistres $N_i ∈\{0,1,2,3,4\}$ sous l’hypothèse $N_i ∼ P(\hatλ_{n}^1 Ei)$. Stockez-les dans un vecteur nommé `freq_poisson`. Récupérez les fréquences empiriques (calculées à la question 3) dans `freq_empirique`.
+
+Remarque : la fréquence théorique de 0 est la somme sur chaque police de la probabilité de subir 0 sinistre.
+
+```{r}
+freq_empirique <- table(freMTPLfreq$ClaimNb)
+
+freq_poisson <- numeric(length(freq_empirique))
+print(freq_poisson)
+names(freq_poisson) <- names(freq_empirique)
+print(freq_poisson)
+
+for(i in 1:length(freq_empirique)){
+  freq_poisson[i] <- sum(dpois(i-1,lambda=lambda1*freMTPLfreq$Exposure))
+}
+print(freq_poisson)
+```
+
+## Question 6.
+
+Représentez graphiquement `freq_empirique` et `freq_poisson` pour les comparer. Commentez les écarts observés.
+
+```{r}
+plot(names(freq_poisson), freq_poisson, type="b",pch=16, col="#34495e", xlab="nombre de sinistres", 
+     ylab="fréquence")
+lines(names(freq_empirique), freq_empirique, type="b", pch=16, col="#2980b9")
+
+legend("topright", legend = c("Poisson théorique", "Fréquence empirique"), col = c("#34495e", "#2980b9"), pch = 16, lty = 1, bty = "n")
+```
+
+On remarque qu’une comparaison directe, la très grande fréquence en 0 écrase visuellement celles des plus grands nombres. On passe en log10.
+
+```{r}
+plot(names(freq_poisson), log10(freq_poisson), type="b",pch=16, col="#34495e", xlab="nombre de sinistres", 
+     ylab="log10−fréquence")
+lines(names(freq_empirique), log10(freq_empirique), type="b", pch=16, col="#2980b9")
+
+legend("topright", legend = c("Poisson théorique", "Fréquence empirique"), col = c("#34495e", "#2980b9"), pch = 16, lty = 1, bty = "n")
+```
+
+Cette fois−ci on voit bien la déviation importante pour les grandes valeurs.
+
+## Question 7.
+
+En assurance, on suppose souvent l’indépendance entre la fréquence $N_i$ et la gravité moyenne des sinistres ( $\frac{S_i}{N_i}$ pour $N_i > 0$) avec $S_i$ le coût total de la police. Vérifiez empiriquement cette hypothèse en calculant la corrélation entre ces deux quantités.
+
+Pour cela :
+
+• Agrégez `freMTPLsev` par `PolicyID` pour obtenir $S_i = sum(ClaimAmount)$ pour tout i tel que Ni \>0.
+
+• Effectuez une jointure à gauche avec `freMTPLfreq` sur la clé `PolicyID` afin d’ajouter `ClaimNb`.
+
+• Calculez $\frac{S_i}{N_i}$ pour Ni \>0, puis la corrélation avec Ni.
+
+La syntaxe de jointure dans data.table est : `X[Y, on = "clé", col_dest := col_source]`
+
+Attention : convertissez d’abord `PolicyID` en entier dans `freMTPLfreq` pour éviter les erreurs de type.
+
+```{r}
+#Calcul de Si
+freMTPLsev_gb <- freMTPLsev[, .(S_i = sum(ClaimAmount)), by = PolicyID]
+head(freMTPLsev_gb)
+#jointure 
+freMTPLsev_gb[freMTPLfreq, ClaimNb:=ClaimNb, on="PolicyID"]
+```
+
+```{r}
+#changer le type de PolicyID
+class(freMTPLsev_gb$PolicyID)
+freMTPLfreq$PolicyID = as.integer(freMTPLfreq$PolicyID)
+class(freMTPLfreq$PolicyID)
+```
+
+```{r}
+#jointure 
+head(freMTPLsev_gb)
+freMTPLsev_gb = freMTPLsev_gb[freMTPLfreq, ClaimNb:=ClaimNb, on="PolicyID"]
+head(freMTPLsev_gb)
+#Calcul de Si/Ni
+freMTPLsev_gb$S_i_mean <- freMTPLsev_gb$S_i/freMTPLsev_gb$ClaimNb
+head(freMTPLsev_gb)
+#Calcul de la corrélation
+cor(freMTPLsev_gb$S_i_mean, freMTPLsev_gb$ClaimNb)
+```
+
+Commentaire : très peu corrélé
+
+## Question 8.
+
+Passons maintenant à l’analyse des coûts des sinistres (variable `ClaimAmount` dans `freMTPLsev`). Tracez l’histogramme de leur répartition avec 100 barres (breaks = 100) :
+
+-    pour l’ensemble des données;
+
+-    en tronquant au quantile 99,5 % (pour atténuer l’effet des valeurs extrêmes);
+
+-   en tronquant au quantile 95 %.
+
+Commentez les particularités observées (ex. : pics anormaux).
+
+```{r}
+hist (freMTPLsev$ClaimAmount, xlab="Montant sinistre", main="Répartition des sinistres", 
+      col="#3498db", breaks=100)
+
+alpha <- 0.995
+hist(freMTPLsev$ClaimAmount[freMTPLsev$ClaimAmount < quantile(freMTPLsev$ClaimAmount, alpha)],
+xlab ="Montant sinistre", main ="Répartition des sinistres", col="#3498db", breaks =100)
+
+alpha <- 0.95
+hist(freMTPLsev$ClaimAmount[freMTPLsev$ClaimAmount < quantile(freMTPLsev$ClaimAmount, alpha)],
+xlab ="Montant sinistre", main ="Répartition des sinistres", col="#3498db", breaks =100)
+
+hist(freMTPLsev$ClaimAmount[freMTPLsev$ClaimAmount > 900 & freMTPLsev$ClaimAmount < 1500 ],
+xlab ="Montant sinistre", main ="Répartition des sinistres", col="#3498db", breaks =100)
+```
+
+Commentaire : valeur commune autour de 1150 car prix identiques pour reparer pièces (ex parebrise)
+
+## Question 9.
+
+Pour analyser la gravité des sinistres en fonction des variables explicatives, ajoutez celles de `freMTPLfreq` à `freMTPLsev` via une jointure à gauche sur `PolicyID`.
+
+```{r}
+freMTPLfreq
+freMTPLsev
+freMTPLfreq.join = freMTPLfreq[freMTPLsev, .(PolicyID, ClaimNb, ClaimAmount, CarAge, DriverAge, Density), on = "PolicyID"]
+head(freMTPLfreq.join)
+```
+
+## Question 10.
+
+Calculez la matrice de corrélations entre toutes les variables (sauf PolicyID) :
+
+```{r}
+cor(freMTPLfreq.join[,-'PolicyID'])
+```
+
+```{r}
+cor(freMTPLfreq.join[ClaimAmount > 30000 ,-'PolicyID'])
+```
+
+Commentaire : pas de correlation entre age et nombre de sinistres
+meme chose pour age voiture et nombre de sinistres
